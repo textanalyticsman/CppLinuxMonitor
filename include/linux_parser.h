@@ -18,6 +18,10 @@ const std::string kVersionFilename{"/version"};
 const std::string kOSPath{"/etc/os-release"};
 const std::string kPasswordPath{"/etc/passwd"};
 
+// Helpers
+// Function added to use regular expressions in order to look for patterns on Linux files
+std::string RegularExpression(std::string patttern, std::string tex, int group);
+
 // System
 float MemoryUtilization();
 long UpTime();

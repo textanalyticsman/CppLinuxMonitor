@@ -67,8 +67,61 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
+// I am using regular expressions to look for text where is possible
+// The first parameter is the pattern I am using to match
+// The second parameter is the text (line from a Linux file) I will analyse
+// The third parameter is a group because I want to use groups to get the proper data
+// For example, R"((\w*:)(\s)*(\d+)(\s*)(kB)?)" in this case the third group will allow
+// us to get data from this text "MemTotal:       33263352 kB"
+std::string LinuxParser::RegularExpression(std::string patttern, std::string text, int group)
+{
+  std::string result;
+  std::regex pat{patttern};
+  std::smatch matches;
+
+  if (regex_search(text, matches, pat))
+    result = matches.str(group);
+
+  return result;
+}
+
 // TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+// I need to get the first value from MemTotal:       33263352 kB
+// Then I need the second value from MemFree:        23736848 kB
+// Last I have to execute (MemTotal-MemFree)/100 to get the ratio
+// When it comes to memory the file always starts MemTotal and then MemFree
+float LinuxParser::MemoryUtilization() 
+{ 
+  std::string line;
+  float value{0};
+  // Vector to save total and free memory values
+  std::vector<float> memory_values;
+
+  // Pattern to look for memory information inside /proc/meminfo
+  std::string pattern{ R"((Mem\w*:)(\s)*(\d+)(\s*)(kB)?)" };
+
+  std::ifstream filestream("/proc/meminfo");
+  if (filestream.is_open()) 
+  {
+    while (std::getline(filestream, line)) 
+    {
+      std::string regular_expression_result = RegularExpression(pattern, line, 3);
+      if(regular_expression_result != "")
+        memory_values.push_back(std::stof(regular_expression_result));     
+    }
+  }
+  
+  // If everything goes well we should have a vector with total and free memory
+  if(memory_values.size() == 2)
+  {
+    float total = memory_values[0]; 
+    float free = memory_values[1];
+
+    value = (total - free)/total;
+  }
+
+  return value;
+}
 
 // TODO: Read and return the system uptime
 long LinuxParser::UpTime() { return 0; }
