@@ -85,7 +85,6 @@ std::string LinuxParser::RegularExpression(std::string patttern, std::string tex
   return result;
 }
 
-// TODO: Read and return the system memory utilization
 // I need to get the first value from MemTotal:       33263352 kB
 // Then I need the second value from MemFree:        23736848 kB
 // Last I have to execute (MemTotal-MemFree)/100 to get the ratio
@@ -100,7 +99,7 @@ float LinuxParser::MemoryUtilization()
   // Pattern to look for memory information inside /proc/meminfo
   std::string pattern{ R"((Mem\w*:)(\s)*(\d+)(\s*)(kB)?)" };
 
-  std::ifstream filestream("/proc/meminfo");
+  std::ifstream filestream(kProcDirectory + kMeminfoFilename);
   if (filestream.is_open()) 
   {
     while (std::getline(filestream, line)) 
@@ -139,8 +138,35 @@ long LinuxParser::ActiveJiffies() { return 0; }
 // TODO: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
-// TODO: Read and return CPU utilization
-vector<string> LinuxParser::CpuUtilization() { return {}; }
+// Read and return CPU utilization
+vector<string> LinuxParser::CpuUtilization() 
+{
+  std::string line;
+  std::string pattern{ R"(cpu\s+((?:\d+\s*)+))" };
+
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  std::string regular_expression_result;
+
+  if (filestream.is_open()) 
+  {
+    while (std::getline(filestream, line)) 
+    {
+      regular_expression_result = RegularExpression(pattern, line, 1);
+
+      if(regular_expression_result != "")
+        break;
+    }
+  }
+
+  std::istringstream linestream{ regular_expression_result };
+  std::vector<std::string> cpu_tokens;
+  std::string tmp;
+  while (linestream >> tmp)
+    cpu_tokens.push_back(tmp);
+
+  return cpu_tokens;
+
+}
 
 // TODO: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { return 0; }
