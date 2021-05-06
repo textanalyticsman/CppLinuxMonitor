@@ -13,9 +13,10 @@ class Process {
   std::string User();                      
   std::string Command();                   
   float CpuUtilization();                  
-  std::string Ram();                       
+  std::string Ram() const;                       
   long int UpTime();                       
-  bool operator<(Process const& a) const;  // TODO: See src/process.cpp
+  bool operator<(Process const& a) const; 
+  bool operator>(Process const& a) const; 
   // To set values
   void SetPid(int pid);
   void SetPuser(std::string puser);

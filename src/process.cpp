@@ -39,7 +39,7 @@ float Process::CpuUtilization() { return Process::process_cpu_utilization; }
 string Process::Command() { return Process::process_command; }
 
 // Return this process's memory utilization
-string Process::Ram() { return Process::process_ram; }
+string Process::Ram() const { return Process::process_ram; }
 
 // Return the user (name) that generated this process
 string Process::User() { return Process::process_user; }
@@ -47,6 +47,14 @@ string Process::User() { return Process::process_user; }
 // Return the age of this process (in seconds)
 long int Process::UpTime() { return Process::process_up_time; }
 
-// TODO: Overload the "less than" comparison operator for Process objects
-// REMOVE: [[maybe_unused]] once you define the function
-bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+// Overload the "less than" comparison operator for Process objects
+bool Process::operator<(Process const& a) const 
+{   
+  return std::stol(process_ram) < std::stol(a.Ram()); 
+}
+
+// Overload the "greater than" comparison operator for Process objects
+bool Process::operator>(Process const& a) const 
+{   
+  return std::stol(process_ram) > std::stol(a.Ram()); 
+}

@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <functional>
 
 #include "process.h"
 #include "processor.h"
@@ -20,6 +21,7 @@ Processor& System::Cpu() { return cpu_; }
 // Return a container composed of the system's processes
 vector<Process>& System::Processes() 
 { 
+    processes_.clear();
     vector<int> list_pids = LinuxParser::Pids();
     
     for(int pid : list_pids)
@@ -28,6 +30,10 @@ vector<Process>& System::Processes()
           LinuxParser::CpuUtilization(pid), LinuxParser::Ram(pid), LinuxParser::UpTime(pid));
         processes_.push_back(process);
     }
+    
+    // I have taken ideas from below link to sort the list of Process objects
+    // https://stackoverflow.com/questions/1380463/sorting-a-vector-of-custom-objects
+    std::sort(processes_.begin(), processes_.end(), std::greater<Process>());
 
     return processes_;
 }
