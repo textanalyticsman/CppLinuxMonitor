@@ -24,8 +24,7 @@ vector<Process>& System::Processes()
     
     for(int pid : list_pids)
     {
-        Process process(pid, LinuxParser::User(pid), LinuxParser::Command(pid), 
-                       LinuxParser::CpuUtilization(pid));
+        Process process(pid, LinuxParser::User(pid), LinuxParser::Command(pid), LinuxParser::CpuUtilization(pid));
         processes_.push_back(process);
     }
 

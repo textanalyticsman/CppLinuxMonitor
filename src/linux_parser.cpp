@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "linux_parser.h"
 
@@ -195,38 +196,49 @@ float LinuxParser::CpuUtilization(int pid)
 
   if (filestream.is_open()) 
     std::getline(filestream, line);
-
-  std::istringstream linestream{ line };
-  vector<float> cpu_tokens;
-  std::string tmp;
   
-  int i{0};
-
-  while (linestream >> tmp)
+  // Sometimes there are process that dies and then the pseudo file disappears, which causes errors.
+  // Thus, if no data is detected, the analysis is by passed
+  if(line != "")
   {
-    ++i;
-    // Positions 14, 15, 16, 17 and 22 are used to calculate CPU consumption per process
-    // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
-    if(i == 14 || i == 15 || i == 16 || i == 17)
-      cpu_tokens.push_back(stof(tmp));
-    else if(i == 22)
-    {
-      cpu_tokens.push_back(stof(tmp));
-      break;
-    }
+      std::istringstream linestream{ line };
+      vector<float> cpu_tokens;
+      std::string tmp;
+      
+      int index{0};
+
+      while (linestream >> tmp)
+      {
+        ++index;
+        // Positions 14, 15, 16, 17 and 22 are used to calculate CPU consumption per process
+        // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+        if(index == 14 || index == 15 || index == 16 || index == 17)
+        {
+          cpu_tokens.push_back(stof(tmp));
+          //std::cout << "PID: "<< pid << " Index: " << index << " Token: " << tmp << " ";
+        }
+        else if(index == 22)
+        {
+          cpu_tokens.push_back(stof(tmp));
+          //std::cout << "PID: "<< pid << " Index: " << index << " Token: " << tmp << " ";
+          break;
+        }
+      }
+
+      //std::cout << "Vector's size: " << cpu_tokens.size() << std::endl;;
+
+      float total_time{0.0};
+      long int hertz{sysconf(_SC_CLK_TCK)};
+      float seconds{0.0};
+      long uptime{UpTime()};
+
+      for(int i=0; i<4; ++i)
+        total_time += cpu_tokens[i];
+      
+      seconds = uptime - (cpu_tokens[4]/hertz);
+
+      cpu_consumption = total_time / hertz / seconds;
   }
-
-  float total_time{0.0};
-  long int hertz{sysconf(_SC_CLK_TCK)};
-  float seconds{0.0};
-  long uptime{UpTime()};
-
-  for(int i=0; i<4; ++i)
-    total_time += cpu_tokens[i];
-  
-  seconds = uptime - (cpu_tokens[4]/hertz);
-
-  cpu_consumption = total_time / hertz / seconds;
 
   return cpu_consumption;
 }
