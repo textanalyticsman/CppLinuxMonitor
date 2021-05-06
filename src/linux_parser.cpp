@@ -123,7 +123,7 @@ float LinuxParser::MemoryUtilization()
   return value;
 }
 
-// TODO: Read and return the system uptime
+// Read and return the system uptime
 long LinuxParser::UpTime() 
 { 
   long int uptime{0};
@@ -213,19 +213,13 @@ float LinuxParser::CpuUtilization(int pid)
         // Positions 14, 15, 16, 17 and 22 are used to calculate CPU consumption per process
         // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
         if(index == 14 || index == 15 || index == 16 || index == 17)
-        {
           cpu_tokens.push_back(stof(tmp));
-          //std::cout << "PID: "<< pid << " Index: " << index << " Token: " << tmp << " ";
-        }
         else if(index == 22)
         {
           cpu_tokens.push_back(stof(tmp));
-          //std::cout << "PID: "<< pid << " Index: " << index << " Token: " << tmp << " ";
           break;
         }
       }
-
-      //std::cout << "Vector's size: " << cpu_tokens.size() << std::endl;;
 
       float total_time{0.0};
       long int hertz{sysconf(_SC_CLK_TCK)};
@@ -243,11 +237,47 @@ float LinuxParser::CpuUtilization(int pid)
   return cpu_consumption;
 }
 
-// TODO: Read and return the total number of processes
-int LinuxParser::TotalProcesses() { return 0; }
+// Read and return the total number of processes
+int LinuxParser::TotalProcesses()
+{ 
+  std::string line;
+  // Pattern to look for total number of processes
+  std::string pattern{ R"(processes\s{1}(\d+))" };
 
-// TODO: Read and return the number of running processes
-int LinuxParser::RunningProcesses() { return 0; }
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  std::string regular_expression_result;
+  if (filestream.is_open()) 
+  {
+    while (std::getline(filestream, line)) 
+    {
+      regular_expression_result = RegularExpression(pattern, line, 1);
+      if(regular_expression_result != "")
+        break;
+    }
+  }  
+  return std::stoi(regular_expression_result);
+}
+
+// Read and return the number of running processes
+int LinuxParser::RunningProcesses()
+{ 
+  std::string line;
+  // Pattern to look for total number of processes
+  std::string pattern{ R"(procs_running\s{1}(\d+))" };
+
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  std::string regular_expression_result;
+  if (filestream.is_open()) 
+  {
+    while (std::getline(filestream, line)) 
+    {
+      regular_expression_result = RegularExpression(pattern, line, 1);
+      if(regular_expression_result != "")
+        break;
+    }
+  }  
+  return std::stoi(regular_expression_result);
+}
 
 // Read and return the command associated with a process
 string LinuxParser::Command(int pid) 
@@ -263,9 +293,35 @@ string LinuxParser::Command(int pid)
   return command_line;
 }
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid[[maybe_unused]]) { return string(); }
+// Read and return the memory used by a process
+string LinuxParser::Ram(int pid) 
+{
+  std::string line;
+  std::string pattern{ R"(VmSize:\s{1}(\d+)\s{1}kB)" };
+
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
+  std::string ram;
+
+  if (filestream.is_open()) 
+  {
+    while (std::getline(filestream, line)) 
+    {
+      ram = RegularExpression(pattern, line, 1);
+
+      if(ram != "")
+        break;
+    }
+  }
+  
+  long int result{0};
+  if(ram!="") // to control cases when the process died in the middle of the process
+  {
+    result = std::stol(ram);
+    result = result / 1024;
+  }
+
+  return std::to_string(result);
+}
 
 // Read and return the user ID associated with a process
 string LinuxParser::Uid(int pid) 
@@ -315,6 +371,36 @@ string LinuxParser::User(int pid)
   return user_name;
 }
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+// Read and return the uptime of a process
+long LinuxParser::UpTime(int pid) 
+{ 
+  long int uptime{ 0 };
+  std::string line;
+
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) +  kStatFilename);
+
+  if (filestream.is_open()) 
+    std::getline(filestream, line);
+  
+  // Sometimes there are process that dies and then the pseudo file disappears, which causes errors.
+  // Thus, if no data is detected, the analysis is by passed
+  if(line != "")
+  {
+      std::istringstream linestream{ line };
+      std::string tmp;      
+      int index{0};
+
+      while (linestream >> tmp)
+      {
+        ++index;
+        if(index == 22)
+          break;        
+      }
+
+      long int hertz{ sysconf(_SC_CLK_TCK) };          
+
+      uptime = std::stol(tmp) / hertz;
+  }
+
+  return uptime;
+}
