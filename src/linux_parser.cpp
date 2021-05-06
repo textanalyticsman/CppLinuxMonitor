@@ -123,7 +123,24 @@ float LinuxParser::MemoryUtilization()
 }
 
 // TODO: Read and return the system uptime
-long LinuxParser::UpTime() { return 0; }
+long LinuxParser::UpTime() 
+{ 
+  long int uptime{0};
+  std::string line;
+
+  std::ifstream filestream(kProcDirectory + kUptimeFilename);
+
+  if (filestream.is_open()) 
+    std::getline(filestream, line);
+
+  std::istringstream linestream{ line };
+  
+  std::string tmp;
+  linestream >> tmp;
+  uptime=std::stod(tmp);  
+
+  return uptime;
+}
 
 // TODO: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
@@ -168,15 +185,71 @@ vector<string> LinuxParser::CpuUtilization()
 
 }
 
+// To return the CPU utilization per process
+float LinuxParser::CpuUtilization(int pid)
+{
+  float cpu_consumption{ 0.0 };
+  std::string line;
+
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) +  kStatFilename);
+
+  if (filestream.is_open()) 
+    std::getline(filestream, line);
+
+  std::istringstream linestream{ line };
+  vector<float> cpu_tokens;
+  std::string tmp;
+  
+  int i{0};
+
+  while (linestream >> tmp)
+  {
+    ++i;
+    // Positions 14, 15, 16, 17 and 22 are used to calculate CPU consumption per process
+    // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+    if(i == 14 || i == 15 || i == 16 || i == 17)
+      cpu_tokens.push_back(stof(tmp));
+    else if(i == 22)
+    {
+      cpu_tokens.push_back(stof(tmp));
+      break;
+    }
+  }
+
+  float total_time{0.0};
+  long int hertz{sysconf(_SC_CLK_TCK)};
+  float seconds{0.0};
+  long uptime{UpTime()};
+
+  for(int i=0; i<4; ++i)
+    total_time += cpu_tokens[i];
+  
+  seconds = uptime - (cpu_tokens[4]/hertz);
+
+  cpu_consumption = total_time / hertz / seconds;
+
+  return cpu_consumption;
+}
+
 // TODO: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { return 0; }
 
 // TODO: Read and return the number of running processes
 int LinuxParser::RunningProcesses() { return 0; }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
+// Read and return the command associated with a process
+string LinuxParser::Command(int pid) 
+{ 
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
+  std::string command_line;
+
+  if (filestream.is_open()) 
+  {
+    std::getline(filestream, command_line);
+  }
+
+  return command_line;
+}
 
 // TODO: Read and return the memory used by a process
 // REMOVE: [[maybe_unused]] once you define the function
@@ -205,8 +278,7 @@ string LinuxParser::Uid(int pid)
   return user_id;
 }
 
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
+// Read and return the user associated with a process
 string LinuxParser::User(int pid) 
 {
   std::string line;

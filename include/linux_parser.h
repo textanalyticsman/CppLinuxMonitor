@@ -21,6 +21,7 @@ const std::string kPasswordPath{"/etc/passwd"};
 // Helpers
 // Function added to use regular expressions in order to look for patterns on Linux files
 std::string RegularExpression(std::string patttern, std::string tex, int group);
+float CpuUtilization(int pid);
 
 // System
 float MemoryUtilization();
@@ -30,6 +31,7 @@ int TotalProcesses();
 int RunningProcesses();
 std::string OperatingSystem();
 std::string Kernel();
+
 
 // CPU
 enum CPUStates {
