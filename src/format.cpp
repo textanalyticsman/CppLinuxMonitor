@@ -1,4 +1,5 @@
 #include <string>
+#include <iomanip>
 
 #include "format.h"
 
@@ -19,8 +20,13 @@ string Format::ElapsedTime(long seconds)
     seconds %= 60;
 
     long int tseconds{ seconds };
-    
-    string result { std::to_string(tdays) + ":" + std::to_string(thours) + ":" + std::to_string(tminutes) + ":" + std::to_string(tseconds)};
 
-    return result;
+    // I am using this answer https://knowledge.udacity.com/questions/155686
+    std::ostringstream stream;
+      stream << std::setw(2) << std::setfill('0') << tdays << ":"
+      <<std::setw(2) << std::setfill('0') << thours << ":" 
+      << std::setw(2) << std::setfill('0') << tminutes << ":"
+      << std::setw(2) << std::setfill('0') << tseconds;
+
+    return stream.str();
 }

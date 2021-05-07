@@ -372,34 +372,42 @@ string LinuxParser::User(int pid)
 }
 
 // Read and return the uptime of a process
+// This implementation only works with kernel > 2.6
+// Otherwise it will retur zero.
 long LinuxParser::UpTime(int pid) 
-{ 
+{
+  std::string kernel{ LinuxParser::Kernel() };
+  float kernel_version{ std::stof(kernel.substr(0,3)) };
   long int uptime{ 0 };
-  std::string line;
 
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) +  kStatFilename);
-
-  if (filestream.is_open()) 
-    std::getline(filestream, line);
-  
-  // Sometimes there are process that dies and then the pseudo file disappears, which causes errors.
-  // Thus, if no data is detected, the analysis is by passed
-  if(line != "")
+  if (kernel_version > 2.6)
   {
-      std::istringstream linestream{ line };
-      std::string tmp;      
-      int index{0};
+    std::string line;
 
-      while (linestream >> tmp)
-      {
-        ++index;
-        if(index == 22)
-          break;        
-      }
+    std::ifstream filestream(kProcDirectory + std::to_string(pid) +  kStatFilename);
 
-      long int hertz{ sysconf(_SC_CLK_TCK) };          
+    if (filestream.is_open()) 
+      std::getline(filestream, line);
+    
+    // Sometimes there are process that dies and then the pseudo file disappears, which causes errors.
+    // Thus, if no data is detected, the analysis is by passed
+    if(line != "")
+    {
+        std::istringstream linestream{ line };
+        std::string tmp;      
+        int index{0};
 
-      uptime = std::stol(tmp) / hertz;
+        while (linestream >> tmp)
+        {
+          ++index;
+          if(index == 22)
+            break;        
+        }
+
+        long int hertz{ sysconf(_SC_CLK_TCK) };          
+
+        uptime = UpTime() - std::stol(tmp) / hertz;
+    }
   }
 
   return uptime;
