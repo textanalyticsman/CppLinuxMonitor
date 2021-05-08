@@ -86,10 +86,21 @@ std::string LinuxParser::RegularExpression(std::string patttern, std::string tex
   return result;
 }
 
-// I need to get the first value from MemTotal:       33263352 kB
-// Then I need the second value from MemFree:        23736848 kB
-// Last I have to execute (MemTotal-MemFree)/100 to get the ratio
-// When it comes to memory the file always starts MemTotal and then MemFree
+/* 
+ I need to get the first value from MemTotal:       33263352 kB
+ Then I need the second value from MemFree:        23736848 kB
+ Last I have to execute (MemTotal-MemFree)/100 to get the ratio
+ When it comes to memory the file always starts MemTotal and then MemFree
+ On WSL /proc/meminfo returns
+ MemTotal:       33263352 kB
+ MemFree:        22359900 kB
+ However, on Ubuntu without WSL it returns
+ MemTotal:        3825964 kB
+ MemFree:         1262180 kB
+ MemAvailable:    2518760 kB
+ Thus the regular expression has been modified to get just MemTotal and MemFree
+*/
+
 float LinuxParser::MemoryUtilization() 
 { 
   std::string line;
@@ -98,7 +109,7 @@ float LinuxParser::MemoryUtilization()
   std::vector<float> memory_values;
 
   // Pattern to look for memory information inside /proc/meminfo
-  std::string pattern{ R"((Mem\w*:)(\s)*(\d+)(\s*)(kB)?)" };
+  std::string pattern{ R"((Mem[^A]\w*:)(\s)*(\d+)(\s*)(kB)?)" };
 
   std::ifstream filestream(kProcDirectory + kMeminfoFilename);
   if (filestream.is_open()) 
